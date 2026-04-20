@@ -97,7 +97,7 @@
     max-width: 960px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 270px 1fr;
     gap: 1.5rem;
     align-items: start;
   }
@@ -119,6 +119,12 @@
     color: var(--text-3);
     margin-bottom: 1.25rem;
     font-family: 'Georgia', serif;
+  }
+
+  .ctrl-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1rem 0 0.85rem;
   }
 
   .ctrl-group { margin-bottom: 1.1rem; }
@@ -190,9 +196,53 @@
     .pill-other   { background: #2c2c2a; color: #b4b2a9; }
   }
 
+  /* Size tier selector */
+  .size-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .size-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-2);
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .size-btn:hover { border-color: var(--blue); }
+
+  .size-btn.active {
+    border-color: var(--blue);
+    background: #dceefb;
+    color: #0c447c;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .size-btn.active {
+      background: #0c447c;
+      color: #b5d4f4;
+    }
+  }
+
+  .size-detail {
+    font-size: 11px;
+    color: var(--text-3);
+    font-style: italic;
+    margin-top: 2px;
+    min-height: 16px;
+  }
+
   .right { display: flex; flex-direction: column; gap: 1rem; }
 
-  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 
   .metric {
     background: var(--surface);
@@ -211,13 +261,34 @@
   }
 
   .metric-val {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: normal;
     color: var(--text);
     letter-spacing: -0.02em;
   }
 
   .metric-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; font-style: italic; }
+
+  /* Capacity rating badge */
+  .cap-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Georgia', serif;
+    letter-spacing: 0.01em;
+  }
+
+  .cap-badge.available   { background: #d4edda; color: #155724; }
+  .cap-badge.tightening  { background: #fff3cd; color: #856404; }
+  .cap-badge.constrained { background: #f8d7da; color: #721c24; }
+
+  @media (prefers-color-scheme: dark) {
+    .cap-badge.available   { background: #0d3320; color: #8fd8a8; }
+    .cap-badge.tightening  { background: #3d2e00; color: #ffd666; }
+    .cap-badge.constrained { background: #3d0f13; color: #f5a0a8; }
+  }
 
   .tab-bar {
     display: flex;
@@ -287,7 +358,6 @@
   /* Data Input tab */
   .data-section { display: flex; flex-direction: column; gap: 1rem; }
 
-  /* CSV upload zone */
   .csv-zone {
     background: var(--surface);
     border: 2px dashed var(--border-strong);
@@ -492,6 +562,7 @@
     .controls { position: static; }
     .charts-grid, .data-grid, .data-company-row { grid-template-columns: 1fr; }
     .metrics { grid-template-columns: 1fr 1fr; }
+    .col-mapper-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -504,12 +575,13 @@
     <div class="how-pill"><strong>Busier supplier</strong> → longer waits, nonlinearly</div>
     <div class="how-pill"><strong>More unpredictable arrivals</strong> → longer waits</div>
     <div class="how-pill"><strong>More variable job times</strong> → longer waits</div>
+    <div class="how-pill"><strong>Smaller supplier</strong> → longer waits at same utilization</div>
   </div>
 </div>
 
 <div class="app">
 
-  <!-- Left: sliders -->
+  <!-- Left: controls -->
   <div class="controls">
     <div class="ctrl-heading">Adjust the scenario</div>
 
@@ -519,7 +591,7 @@
         <span class="ctrl-val" id="cva-out">moderate</span>
       </div>
       <input type="range" min="0.1" max="2.5" step="0.1" value="1.0" id="cva" oninput="update(true)">
-      <div class="ctrl-hint">Low = orders arrive on a regular schedule. High = orders arrive in unpredictable bursts.</div>
+      <div class="ctrl-hint">Low = regular schedule. High = unpredictable bursts.</div>
     </div>
 
     <div class="ctrl-group">
@@ -528,7 +600,7 @@
         <span class="ctrl-val" id="cvs-out">moderate</span>
       </div>
       <input type="range" min="0.1" max="2.5" step="0.1" value="1.0" id="cvs" oninput="update(true)">
-      <div class="ctrl-hint">Low = jobs take roughly the same time. High = some jobs take much longer than others.</div>
+      <div class="ctrl-hint">Low = jobs take roughly the same time. High = some take much longer.</div>
     </div>
 
     <div class="ctrl-group">
@@ -537,7 +609,6 @@
         <span class="ctrl-val" id="pt-out">4.0 hrs</span>
       </div>
       <input type="range" min="1" max="20" step="0.5" value="4" id="pt" oninput="update(true)">
-      <div class="ctrl-hint">How long the supplier spends actively working on each order.</div>
     </div>
 
     <div class="ctrl-group">
@@ -546,7 +617,7 @@
         <span class="ctrl-val" id="u-out">75%</span>
       </div>
       <input type="range" min="5" max="99" step="1" value="75" id="util" oninput="update(true)">
-      <div class="ctrl-hint">The percentage of time the supplier is actively working. Above 85% is a danger zone.</div>
+      <div class="ctrl-hint">Per-machine utilization. Above 85% is a danger zone.</div>
     </div>
 
     <div class="ctrl-group">
@@ -559,6 +630,21 @@
         <span class="pill pill-company" id="company-lbl">50% The Company</span>
         <span class="pill pill-other"   id="other-lbl">50% other</span>
       </div>
+    </div>
+
+    <hr class="ctrl-divider">
+    <div class="ctrl-heading">Supplier size</div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label" style="margin-bottom:8px">
+        How large is this supplier?
+      </div>
+      <div class="size-selector" id="main-size-selector">
+        <button class="size-btn active" onclick="setSize('small', this)">Small</button>
+        <button class="size-btn" onclick="setSize('medium', this)">Medium</button>
+        <button class="size-btn" onclick="setSize('large', this)">Large</button>
+      </div>
+      <div class="size-detail" id="size-detail"></div>
     </div>
   </div>
 
@@ -574,7 +660,7 @@
       <button class="tab"        onclick="setView('datainput',   this)">Use my data</button>
     </div>
 
-    <!-- Overview (dashboard) -->
+    <!-- Overview -->
     <div id="view-dashboard">
       <div class="charts-grid">
         <div class="chart-box">
@@ -587,27 +673,27 @@
           </div>
         </div>
         <div class="chart-box">
-          <div class="chart-title">Wait time vs. unpredictability</div>
-          <div class="chart-desc">Effect of irregular arrivals vs. variable job times</div>
-          <div class="chart-wrap"><canvas id="c-var"></canvas></div>
+          <div class="chart-title">Same utilization, different supplier sizes</div>
+          <div class="chart-desc">A larger supplier has shorter waits — and far more absolute spare capacity</div>
+          <div class="chart-wrap"><canvas id="c-sizes"></canvas></div>
           <div class="chart-legend">
-            <span><span class="leg-dot" style="background:#185fa5"></span>Arrival irregularity</span>
-            <span><span class="leg-dot" style="background:#993c1d"></span>Job time variability</span>
+            <span><span class="leg-dot" style="background:#993c1d"></span>Small</span>
+            <span><span class="leg-dot" style="background:#ba7517"></span>Medium</span>
+            <span><span class="leg-dot" style="background:#0f6e56"></span>Large</span>
           </div>
         </div>
         <div class="chart-box">
-          <div class="chart-title">Formula estimate vs. simulated result</div>
-          <div class="chart-desc">How closely the quick estimate tracks the full simulation</div>
-          <div class="chart-wrap"><canvas id="c-comp"></canvas></div>
+          <div class="chart-title">Spare capacity by supplier size</div>
+          <div class="chart-desc">Additional hours of work absorbable per week before hitting 85%</div>
+          <div class="chart-wrap"><canvas id="c-spare"></canvas></div>
           <div class="chart-legend">
-            <span><span class="leg-dot" style="background:#185fa5"></span>Formula estimate</span>
-            <span><span class="leg-dot" style="background:#0f6e56"></span>Simulation</span>
-            <span><span class="leg-dot" style="background:#ba7517"></span>The Company only</span>
+            <span><span class="leg-dot" style="background:#0f6e56"></span>Spare hrs/week</span>
+            <span><span class="leg-dot" style="background:#ba7517"></span>Additional jobs/week</span>
           </div>
         </div>
         <div class="chart-box">
           <div class="chart-title">Jobs piling up over time</div>
-          <div class="chart-desc">How the backlog grows and clears across a simulated day</div>
+          <div class="chart-desc">How the backlog grows and clears across a simulated period</div>
           <div class="chart-wrap"><canvas id="c-queue"></canvas></div>
           <div class="chart-legend">
             <span><span class="leg-dot" style="background:#185fa5"></span>All jobs</span>
@@ -617,20 +703,27 @@
       </div>
     </div>
 
-    <!-- What if? (sensitivity) -->
+    <!-- What if? -->
     <div id="view-sensitivity" style="display:none">
-      <div class="chart-box">
-        <div class="chart-title">What if arrivals were more or less irregular?</div>
-        <div class="chart-desc">Each line shows a different level of arrival unpredictability — from very regular (light blue) to very erratic (dark red)</div>
-        <div class="chart-wrap" style="height:300px"><canvas id="c-sens"></canvas></div>
+      <div class="charts-grid">
+        <div class="chart-box">
+          <div class="chart-title">Wait time across utilization levels</div>
+          <div class="chart-desc">Each line shows a different level of arrival unpredictability</div>
+          <div class="chart-wrap" style="height:280px"><canvas id="c-sens"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Small vs. Medium vs. Large at every utilization</div>
+          <div class="chart-desc">Larger suppliers absorb demand spikes more gracefully</div>
+          <div class="chart-wrap" style="height:280px"><canvas id="c-sens-sizes"></canvas></div>
+        </div>
       </div>
     </div>
 
-    <!-- Wait spread (histogram) -->
+    <!-- Wait spread -->
     <div id="view-histogram" style="display:none">
       <div class="chart-box">
         <div class="chart-title">Spread of wait times across all jobs</div>
-        <div class="chart-desc">Most jobs may wait a short time, but a significant tail waits far longer — those outliers cause line stoppages</div>
+        <div class="chart-desc">Most jobs wait briefly, but the long tail causes line stoppages</div>
         <div class="chart-wrap" style="height:300px"><canvas id="c-hist"></canvas></div>
         <div class="chart-legend">
           <span><span class="leg-dot" style="background:#185fa5"></span>All jobs</span>
@@ -639,15 +732,14 @@
       </div>
     </div>
 
-    <!-- Use my data (data input) -->
+    <!-- Use my data -->
     <div id="view-datainput" style="display:none">
       <div class="data-section">
 
         <div class="data-intro">
-          Upload a CSV file from your supplier records, or paste numbers directly into the boxes below. The simulator will work out how busy they are, how unpredictable their schedule is, and how variable their job times are — then show you the predicted wait time step by step.
+          Upload a CSV or paste numbers below. Select the supplier's size category, and the simulator will derive utilization, variability, and predicted wait time step by step.
         </div>
 
-        <!-- CSV upload zone -->
         <div class="csv-zone" id="csv-zone"
              ondragover="event.preventDefault(); this.classList.add('drag-over')"
              ondragleave="this.classList.remove('drag-over')"
@@ -662,7 +754,6 @@
           Loaded: <span class="csv-filename" id="csv-filename"></span> — <span id="csv-row-count"></span> rows found.
         </div>
 
-        <!-- Column mapper (shown after file loaded) -->
         <div class="col-mapper" id="col-mapper">
           <div class="col-mapper-title">Match your columns to the right fields</div>
           <div class="col-mapper-grid">
@@ -677,7 +768,7 @@
               <div class="csv-preview" id="prev-service"></div>
             </div>
             <div class="col-map-group">
-              <label>The Company job? column (optional)</label>
+              <label>The Company job? (optional)</label>
               <select id="map-label"></select>
               <div class="csv-preview" id="prev-label"></div>
             </div>
@@ -690,30 +781,37 @@
         <div class="data-grid">
           <div class="data-box">
             <div class="data-box-title">When did each job arrive?</div>
-            <div class="data-box-desc">Paste the arrival time of each job, in hours from the start of your observation window. One number per line.</div>
+            <div class="data-box-desc">Arrival time of each job in hours from start. One per line.</div>
             <textarea id="arr-input" placeholder="0.0&#10;1.2&#10;2.5&#10;3.1&#10;5.0&#10;6.8&#10;7.3&#10;9.0&#10;10.4&#10;12.1"></textarea>
           </div>
           <div class="data-box">
-            <div class="data-box-title">How long did each job take to process?</div>
-            <div class="data-box-desc">The actual time spent working on each job, in hours. Not including wait time — just active processing. One number per line.</div>
+            <div class="data-box-title">How long did each job take?</div>
+            <div class="data-box-desc">Active processing time per job in hours (not including wait). One per line.</div>
             <textarea id="svc-input" placeholder="3.8&#10;4.2&#10;5.1&#10;3.5&#10;4.0&#10;4.8&#10;3.9&#10;4.3&#10;4.1&#10;3.7"></textarea>
           </div>
         </div>
 
         <div class="data-company-row">
           <div class="data-box">
-            <div class="data-box-title">Which jobs belong to The Company?</div>
-            <div class="data-box-desc">Enter 1 for The Company's jobs, 0 for everyone else's — one per line, in the same order as the arrivals above. Leave blank to use the share slider instead.</div>
-            <textarea id="label-input" style="height:90px" placeholder="1&#10;0&#10;1&#10;1&#10;0&#10;0&#10;1&#10;0&#10;1&#10;1"></textarea>
+            <div class="data-box-title">Supplier size &amp; Company labels</div>
+            <div class="data-box-desc">Pick the supplier's size, then optionally enter 1 (Company) or 0 (other) per job.</div>
+            <div style="margin-bottom:8px">
+              <div class="size-selector" id="data-size-selector">
+                <button class="size-btn active" onclick="setDataSize('small', this)">Small</button>
+                <button class="size-btn" onclick="setDataSize('medium', this)">Medium</button>
+                <button class="size-btn" onclick="setDataSize('large', this)">Large</button>
+              </div>
+            </div>
+            <textarea id="label-input" style="height:80px" placeholder="1&#10;0&#10;1&#10;1&#10;0&#10;0&#10;1&#10;0&#10;1&#10;1"></textarea>
           </div>
           <div class="data-box" style="display:flex;flex-direction:column;justify-content:flex-end;">
-            <div class="data-box-desc" style="margin-bottom:8px">When you are ready, click below to analyse your data.</div>
+            <div class="data-box-desc" style="margin-bottom:8px">Click to analyse your data.</div>
             <button class="parse-btn" onclick="parseData()">Analyse my data</button>
             <div class="error-msg" id="parse-error"></div>
           </div>
         </div>
 
-        <!-- Plain-English derivation walkthrough -->
+        <!-- Derivation -->
         <div class="derivation" id="derivation-box">
           <div class="deriv-title">How your data translates into wait time — step by step</div>
           <div class="deriv-steps">
@@ -721,8 +819,8 @@
             <div class="deriv-step">
               <div class="step-num">1</div>
               <div class="step-body">
-                <div class="step-label">Work out the gaps between arrivals — how many hours passed between each job showing up</div>
-                <div class="step-working" id="d-iat-working">e.g. if jobs arrived at hour 0, 1.2, and 2.5 — the gaps are 1.2 hrs and 1.3 hrs</div>
+                <div class="step-label">Work out the gaps between arrivals</div>
+                <div class="step-working" id="d-iat-working">e.g. jobs at hour 0, 1.2, 2.5 → gaps of 1.2 and 1.3 hrs</div>
               </div>
               <div class="step-result pending" id="d-iat">enter data above</div>
             </div>
@@ -730,8 +828,8 @@
             <div class="deriv-step">
               <div class="step-num">2</div>
               <div class="step-body">
-                <div class="step-label">Measure how irregular those gaps are — if all gaps are the same, arrivals are perfectly predictable; if they vary widely, arrivals are erratic</div>
-                <div class="step-working" id="d-cva-working">irregularity score = spread of gaps ÷ average gap</div>
+                <div class="step-label">Measure how irregular those gaps are</div>
+                <div class="step-working" id="d-cva-working">irregularity = spread ÷ average</div>
               </div>
               <div class="step-result pending" id="d-cva">enter data above</div>
             </div>
@@ -739,8 +837,8 @@
             <div class="deriv-step">
               <div class="step-num">3</div>
               <div class="step-body">
-                <div class="step-label">Measure how variable the job times are — if all jobs take the same time, service is consistent; if some take much longer, it is unpredictable</div>
-                <div class="step-working" id="d-cvs-working">variability score = spread of job times ÷ average job time</div>
+                <div class="step-label">Measure how variable job times are</div>
+                <div class="step-working" id="d-cvs-working">variability = spread ÷ average</div>
               </div>
               <div class="step-result pending" id="d-cvs">enter data above</div>
             </div>
@@ -748,8 +846,8 @@
             <div class="deriv-step">
               <div class="step-num">4</div>
               <div class="step-body">
-                <div class="step-label">Calculate the average time a job takes to process — this is how long the supplier is tied up per order</div>
-                <div class="step-working" id="d-pt-working">average of all job processing times</div>
+                <div class="step-label">Average job processing time</div>
+                <div class="step-working" id="d-pt-working">average of all job times</div>
               </div>
               <div class="step-result pending" id="d-pt">enter data above</div>
             </div>
@@ -757,8 +855,8 @@
             <div class="deriv-step">
               <div class="step-num">5</div>
               <div class="step-body">
-                <div class="step-label">Estimate how busy the supplier is — average job time divided by average gap between arrivals tells us what fraction of the time the supplier is occupied</div>
-                <div class="step-working" id="d-u-working">busyness = average job time ÷ average gap between arrivals</div>
+                <div class="step-label">Per-machine utilization, adjusted for supplier size</div>
+                <div class="step-working" id="d-u-working">busyness = avg job time ÷ (avg gap × machines)</div>
               </div>
               <div class="step-result pending" id="d-u">enter data above</div>
             </div>
@@ -766,8 +864,8 @@
             <div class="deriv-step">
               <div class="step-num">6</div>
               <div class="step-body">
-                <div class="step-label">Count what share of jobs belong to The Company</div>
-                <div class="step-working" id="d-mix-working">The Company jobs ÷ total jobs</div>
+                <div class="step-label">The Company's share of the workload</div>
+                <div class="step-working" id="d-mix-working">Company jobs ÷ total jobs</div>
               </div>
               <div class="step-result pending" id="d-mix">enter data above</div>
             </div>
@@ -775,8 +873,8 @@
             <div class="deriv-step">
               <div class="step-num">7</div>
               <div class="step-body">
-                <div class="step-label">Combine busyness, irregularity, and variability to estimate the average wait time before work even begins</div>
-                <div class="step-working" id="d-vut-working">predicted wait = (irregularity + variability) × average job time × busyness pressure</div>
+                <div class="step-label">Predicted wait time and capacity assessment</div>
+                <div class="step-working" id="d-vut-working">Combines busyness, irregularity, variability, and size</div>
               </div>
               <div class="step-result pending" id="d-vut">enter data above</div>
             </div>
@@ -798,8 +896,53 @@
 let charts = {};
 let currentView = 'dashboard';
 let derivedParams = null;
-let cachedSim = null;      // holds simulation result when running from real data
-let usingRealData = false; // true when user has applied uploaded data
+let cachedSim = null;
+let usingRealData = false;
+
+/*
+ * ── Supplier size tiers ──
+ * Easy to recalibrate. "machines" = parallel processing lines.
+ * "opsHrs" = operating hours per week per machine.
+ */
+const TIERS = {
+  small:  { machines: 1,  opsHrs: 50,  label: 'Small',  desc: 'Single machine · ~50 hrs/week capacity' },
+  medium: { machines: 3,  opsHrs: 60,  label: 'Medium', desc: '~3 parallel lines · ~180 hrs/week total' },
+  large:  { machines: 8,  opsHrs: 80,  label: 'Large',  desc: '~8 parallel lines · ~640 hrs/week total' }
+};
+
+let currentTier = 'small';
+let dataTier    = 'small';
+
+function setSize(tier, btn) {
+  currentTier = tier;
+  document.querySelectorAll('#main-size-selector .size-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  update(true);
+}
+
+function setDataSize(tier, btn) {
+  dataTier = tier;
+  document.querySelectorAll('#data-size-selector .size-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function getTier()    { return TIERS[currentTier]; }
+function getServers() { return getTier().machines; }
+function getOpsHrs()  { return getTier().opsHrs; }
+
+/* ── Capacity rating ── */
+function capRating(u) {
+  if (u < 0.70) return { label: 'Available',   cls: 'available' };
+  if (u < 0.85) return { label: 'Tightening',  cls: 'tightening' };
+  return                { label: 'Constrained', cls: 'constrained' };
+}
+
+function spareCapacity(u, c, opsHrs, pt, targetU) {
+  targetU = targetU || 0.85;
+  if (u >= targetU) return { hrs: 0, jobs: 0 };
+  const spareHrs = (targetU - u) * c * opsHrs;
+  return { hrs: spareHrs, jobs: pt > 0 ? spareHrs / pt : 0 };
+}
 
 /* ── Variability label ── */
 function varLabel(v) {
@@ -827,103 +970,160 @@ function stddev(arr) {
   const m = mean(arr);
   return Math.sqrt(arr.reduce((s, x) => s + (x - m) ** 2, 0) / arr.length);
 }
-
 function parseLines(text) {
   return text.trim().split(/\s+|\n|,/).map(s => parseFloat(s)).filter(n => !isNaN(n));
+}
+
+/* ── Multi-server wait time (Sakasegawa approximation) ──
+   For c = 1 this reduces to the standard VUT formula. */
+function waitTimeFn(ca, cs, pt, u, c) {
+  c = c || 1;
+  if (u >= 1) u = 0.999;
+  const exponent = Math.sqrt(2 * (c + 1)) - 1;
+  return ((ca * ca + cs * cs) / 2) * (pt / c) * (Math.pow(u, exponent) / (1 - u));
+}
+
+/* ── Simulation (multi-server) ── */
+function exponential(m) { return -m * Math.log(Math.random() || 1e-10); }
+function erlang(k, m) {
+  let s = 0;
+  for (let i = 0; i < k; i++) s += exponential(m / k);
+  return s;
+}
+function sampleSpread(m, spread) {
+  if (spread <= 0.01) return m;
+  if (spread <= 0.5)  return erlang(Math.max(1, Math.round(1 / (spread * spread))), m);
+  return exponential(m);
+}
+
+function simulate(ca, cs, pt, u, mix, nJobs, c) {
+  c = c || 1;
+  const avgGap = pt / (u * c);
+  let arrivals = [], t = 0;
+  for (let i = 0; i < nJobs; i++) {
+    t += sampleSpread(avgGap, ca);
+    arrivals.push({ arrTime: t, isCompany: Math.random() < mix / 100 });
+  }
+  let serverFreeAt = new Array(c).fill(0);
+  let waitTimes = [], companyWaits = [], queueOverTime = [];
+
+  for (let i = 0; i < arrivals.length; i++) {
+    const j = arrivals[i];
+    let minFree = serverFreeAt[0], minIdx = 0;
+    for (let s = 1; s < c; s++) {
+      if (serverFreeAt[s] < minFree) { minFree = serverFreeAt[s]; minIdx = s; }
+    }
+    const start   = Math.max(j.arrTime, minFree);
+    const jobTime = sampleSpread(pt, cs);
+    const wait    = start - j.arrTime;
+    serverFreeAt[minIdx] = start + jobTime;
+    waitTimes.push(wait);
+    if (j.isCompany) companyWaits.push(wait);
+    if (i % Math.max(1, Math.floor(nJobs / 50)) === 0) {
+      const globalMin = Math.min(...serverFreeAt);
+      queueOverTime.push({
+        t: j.arrTime,
+        q: arrivals.slice(i).filter(x => x.arrTime < globalMin).length,
+        cq: arrivals.slice(i).filter(x => x.arrTime < globalMin && x.isCompany).length
+      });
+    }
+  }
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  return { avgWait: avg(waitTimes), companyAvgWait: avg(companyWaits), waitTimes, companyWaits, queueOverTime };
+}
+
+function simulateFromRealData(arrTimes, svcTimes, jobLabels, companyPct, c) {
+  c = c || 1;
+  let serverFreeAt = new Array(c).fill(0);
+  let waitTimes = [], companyWaits = [], queueOverTime = [];
+  const n = arrTimes.length;
+  for (let i = 0; i < n; i++) {
+    const arr = arrTimes[i], svc = svcTimes[i % svcTimes.length];
+    const isCo = jobLabels.length > 0 ? (jobLabels[i] === true || jobLabels[i] === 1) : Math.random() < companyPct / 100;
+    let minFree = serverFreeAt[0], minIdx = 0;
+    for (let s = 1; s < c; s++) { if (serverFreeAt[s] < minFree) { minFree = serverFreeAt[s]; minIdx = s; } }
+    const start = Math.max(arr, minFree);
+    const wait  = start - arr;
+    serverFreeAt[minIdx] = start + svc;
+    waitTimes.push(wait);
+    if (isCo) companyWaits.push(wait);
+    if (i % Math.max(1, Math.floor(n / 50)) === 0) {
+      const gMin = Math.min(...serverFreeAt);
+      queueOverTime.push({ t: arr, q: arrTimes.slice(i).filter(t => t < gMin).length, cq: 0 });
+    }
+  }
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  return { avgWait: avg(waitTimes), companyAvgWait: avg(companyWaits), waitTimes, companyWaits, queueOverTime };
 }
 
 /* ── Data Input ── */
 function parseData() {
   const errEl = document.getElementById('parse-error');
   errEl.style.display = 'none';
-
   const arrTimes = parseLines(document.getElementById('arr-input').value);
   const svcTimes = parseLines(document.getElementById('svc-input').value);
   const labelRaw = document.getElementById('label-input').value.trim();
+  const tier = TIERS[dataTier];
+  const c = tier.machines;
 
   if (arrTimes.length < 2) { showErr('Please enter at least 2 arrival times.'); return; }
   if (svcTimes.length < 1) { showErr('Please enter at least 1 processing time.'); return; }
+  const cleanSvc = svcTimes.filter(v => v > 0);
+  if (cleanSvc.length < 1) { showErr('No valid processing times found.'); return; }
 
-  // Filter out any zero or negative processing times silently
-  const cleanSvcTimes = svcTimes.filter(v => v > 0);
-  if (cleanSvcTimes.length < 1) { showErr('No valid processing times found — make sure the values are positive numbers in hours.'); return; }
-
-  // Auto-sort arrivals earliest to latest — no need for the user to pre-sort
   arrTimes.sort((a, b) => a - b);
-
   const gaps = [];
-  for (let i = 1; i < arrTimes.length; i++) {
-    const d = arrTimes[i] - arrTimes[i - 1];
-    if (d > 0) gaps.push(d);
-    // Skip duplicate timestamps silently rather than erroring
-  }
+  for (let i = 1; i < arrTimes.length; i++) { const d = arrTimes[i] - arrTimes[i-1]; if (d > 0) gaps.push(d); }
+  if (gaps.length < 1) { showErr('Could not find valid gaps between arrivals.'); return; }
 
-  if (gaps.length < 1) { showErr('Could not find any valid gaps between arrival times. Please check your data.'); return; }
-
-  const avgGap    = mean(gaps);
-  const spreadGap = stddev(gaps);
-  const cva       = avgGap === 0 ? 0 : spreadGap / avgGap;
-
-  const avgJob    = mean(cleanSvcTimes);
-  const spreadJob = stddev(cleanSvcTimes);
-  const cvs       = avgJob === 0 ? 0 : spreadJob / avgJob;
-
-  const u  = Math.min(0.99, avgJob / avgGap);
-  const pt = avgJob;
+  const avgGap = mean(gaps), spreadGap = stddev(gaps), cva = avgGap === 0 ? 0 : spreadGap / avgGap;
+  const avgJob = mean(cleanSvc), spreadJob = stddev(cleanSvc), cvs = avgJob === 0 ? 0 : spreadJob / avgJob;
+  const u = Math.min(0.99, avgJob / (avgGap * c)), pt = avgJob;
 
   let companyPct;
-  if (labelRaw === '') {
-    companyPct = parseInt(document.getElementById('mix').value);
-  } else {
-    const labels = parseLines(labelRaw);
-    companyPct   = Math.round((labels.filter(l => l === 1).length / labels.length) * 100);
-  }
+  if (labelRaw === '') { companyPct = parseInt(document.getElementById('mix').value); }
+  else { const labels = parseLines(labelRaw); companyPct = Math.round((labels.filter(l => l === 1).length / labels.length) * 100); }
 
-  const predictedWait = waitTimeFn(cva, cvs, pt, u);
+  const predictedWait = waitTimeFn(cva, cvs, pt, u, c);
+  const spare = spareCapacity(u, c, tier.opsHrs, pt, 0.85);
+  const rating = capRating(u);
 
-  // Parse job labels for use in the real-data simulation
   let jobLabels = [];
-  if (labelRaw !== '') {
-    jobLabels = parseLines(labelRaw).map(l => l === 1);
-  }
+  if (labelRaw !== '') { jobLabels = parseLines(labelRaw).map(l => l === 1); }
 
-  // Store real arrival times, service times, labels, and derived params
-  derivedParams = { cva, cvs, pt, u, companyPct, realArrTimes: arrTimes, realSvcTimes: cleanSvcTimes, jobLabels };
+  derivedParams = { cva, cvs, pt, u, companyPct, realArrTimes: arrTimes, realSvcTimes: cleanSvc, jobLabels, tier: dataTier };
 
-  const fmt2 = n => n.toFixed(2);
-  const fmt1 = n => n.toFixed(1);
+  const f2 = n => n.toFixed(2);
 
-  document.getElementById('d-iat-working').textContent =
-    `Found ${gaps.length} gaps. Average gap between arrivals: ${fmt2(avgGap)} hrs`;
-  setResult('d-iat', `avg gap: ${fmt2(avgGap)} hrs`);
+  document.getElementById('d-iat-working').textContent = `${gaps.length} gaps · avg: ${f2(avgGap)} hrs`;
+  setResult('d-iat', `avg gap: ${f2(avgGap)} hrs`);
 
-  document.getElementById('d-cva-working').textContent =
-    `Spread (${fmt2(spreadGap)} hrs) ÷ average gap (${fmt2(avgGap)} hrs) = ${fmt2(cva)} → ${varLabel(cva)}`;
-  setResult('d-cva', `${varLabel(cva)} (${fmt2(cva)})`);
+  document.getElementById('d-cva-working').textContent = `Spread (${f2(spreadGap)}) ÷ avg (${f2(avgGap)}) = ${f2(cva)}`;
+  setResult('d-cva', `${varLabel(cva)} (${f2(cva)})`);
 
-  document.getElementById('d-cvs-working').textContent =
-    `Spread (${fmt2(spreadJob)} hrs) ÷ average job time (${fmt2(avgJob)} hrs) = ${fmt2(cvs)} → ${varLabel(cvs)}`;
-  setResult('d-cvs', `${varLabel(cvs)} (${fmt2(cvs)})`);
+  document.getElementById('d-cvs-working').textContent = `Spread (${f2(spreadJob)}) ÷ avg (${f2(avgJob)}) = ${f2(cvs)}`;
+  setResult('d-cvs', `${varLabel(cvs)} (${f2(cvs)})`);
 
-  document.getElementById('d-pt-working').textContent =
-    `Average of ${cleanSvcTimes.length} job times`;
-  setResult('d-pt', `${fmt2(avgJob)} hrs per job`);
+  document.getElementById('d-pt-working').textContent = `Average of ${cleanSvc.length} jobs`;
+  setResult('d-pt', `${f2(avgJob)} hrs per job`);
 
   document.getElementById('d-u-working').textContent =
-    `${fmt2(avgJob)} hrs per job ÷ ${fmt2(avgGap)} hrs between arrivals = ${(u * 100).toFixed(1)}% occupied`;
-  setResult('d-u', `${(u * 100).toFixed(1)}% busy`);
+    c > 1 ? `${f2(avgJob)} ÷ (${f2(avgGap)} × ${c} machines) = ${(u*100).toFixed(1)}%`
+           : `${f2(avgJob)} ÷ ${f2(avgGap)} = ${(u*100).toFixed(1)}%`;
+  setResult('d-u', `${(u*100).toFixed(1)}% per machine (${tier.label})`);
 
   document.getElementById('d-mix-working').textContent =
-    labelRaw === '' ? 'Using the share slider — no labels provided' :
-    `${parseLines(labelRaw).filter(l => l === 1).length} The Company jobs out of ${parseLines(labelRaw).length} total`;
+    labelRaw === '' ? 'Using the share slider' : `${parseLines(labelRaw).filter(l => l===1).length} of ${parseLines(labelRaw).length}`;
   setResult('d-mix', `${companyPct}% The Company`);
 
+  const spareText = spare.hrs > 0
+    ? `${f2(predictedWait)} hrs wait · ${rating.label} · ${spare.hrs.toFixed(0)} spare hrs/wk`
+    : `${f2(predictedWait)} hrs wait · ${rating.label} · no spare`;
   document.getElementById('d-vut-working').textContent =
-    `Busyness: ${(u*100).toFixed(0)}%  ·  Arrival irregularity: ${fmt2(cva)}  ·  Job variability: ${fmt2(cvs)}  ·  Avg job time: ${fmt2(pt)} hrs`;
-  setResult('d-vut', `${fmt2(predictedWait)} hrs predicted wait`);
+    `${tier.label} · ${c} machine${c>1?'s':''} · ${(u*100).toFixed(0)}% util`;
+  setResult('d-vut', spareText);
 
   document.getElementById('apply-btn').disabled = false;
-
   function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
 }
 
@@ -933,117 +1133,32 @@ function setResult(id, text) {
   el.classList.remove('pending');
 }
 
-/* ── Apply to sliders ── */
 function applyDerivedParams() {
   if (!derivedParams) return;
-  const { cva, cvs, pt, u, companyPct, realArrTimes, realSvcTimes, jobLabels } = derivedParams;
+  const { cva, cvs, pt, u, companyPct, realArrTimes, realSvcTimes, jobLabels, tier } = derivedParams;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-  document.getElementById('cva').value  = clamp(cva,  0.1, 2.5).toFixed(1);
-  document.getElementById('cvs').value  = clamp(cvs,  0.1, 2.5).toFixed(1);
-  document.getElementById('pt').value   = clamp(pt,   1,   20).toFixed(1);
+  document.getElementById('cva').value  = clamp(cva, 0.1, 2.5).toFixed(1);
+  document.getElementById('cvs').value  = clamp(cvs, 0.1, 2.5).toFixed(1);
+  document.getElementById('pt').value   = clamp(pt, 1, 20).toFixed(1);
   document.getElementById('util').value = Math.round(clamp(u * 100, 5, 99));
   document.getElementById('mix').value  = Math.round(clamp(companyPct, 5, 95) / 5) * 5;
 
-  // Run the simulation once on real data and cache it — don't re-randomise on tab switch
-  cachedSim = simulateFromRealData(realArrTimes, realSvcTimes, jobLabels, companyPct);
+  currentTier = tier;
+  document.querySelectorAll('#main-size-selector .size-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase() === tier);
+  });
+
+  const c = TIERS[tier].machines;
+  cachedSim = simulateFromRealData(realArrTimes, realSvcTimes, jobLabels, companyPct, c);
   usingRealData = true;
-
   setView('dashboard', document.querySelectorAll('.tab')[0]);
-}
-
-/* ── Simulate directly from real uploaded records ── */
-function simulateFromRealData(arrTimes, svcTimes, jobLabels, companyPct) {
-  // Pair each arrival with a service time (cycle through svc times if fewer than arrivals)
-  let workerFreeAt = 0, waitTimes = [], companyWaits = [], queueOverTime = [];
-  const n = arrTimes.length;
-
-  for (let i = 0; i < n; i++) {
-    const arrTime = arrTimes[i];
-    const svcTime = svcTimes[i % svcTimes.length];
-    const isCompany = jobLabels.length > 0
-      ? (jobLabels[i] === true || jobLabels[i] === 1)
-      : Math.random() < companyPct / 100;
-
-    const start = Math.max(arrTime, workerFreeAt);
-    const wait  = start - arrTime;
-    workerFreeAt = start + svcTime;
-
-    waitTimes.push(wait);
-    if (isCompany) companyWaits.push(wait);
-
-    if (i % Math.max(1, Math.floor(n / 50)) === 0) {
-      const backlog = arrTimes.slice(i).filter(t => t < workerFreeAt).length;
-      queueOverTime.push({
-        t: arrTime,
-        q: backlog,
-        cq: arrTimes.slice(i).filter((t, j) => {
-          const lbl = jobLabels.length > 0 ? jobLabels[i + j] : Math.random() < companyPct / 100;
-          return t < workerFreeAt && lbl;
-        }).length
-      });
-    }
-  }
-
-  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  return { avgWait: avg(waitTimes), companyAvgWait: avg(companyWaits), waitTimes, companyWaits, queueOverTime };
-}
-
-/* ── Wait time formula (wait time formula) ── */
-function waitTimeFn(arrIrregularity, jobVariability, avgJobTime, busyness) {
-  return ((arrIrregularity * arrIrregularity + jobVariability * jobVariability) / 2)
-    * avgJobTime
-    * (busyness / (1 - busyness));
-}
-
-/* ── Simulation ── */
-function exponential(m) { return -m * Math.log(Math.random() || 1e-10); }
-
-function erlang(k, m) {
-  let s = 0;
-  for (let i = 0; i < k; i++) s += exponential(m / k);
-  return s;
-}
-
-function sampleSpread(m, spread) {
-  if (spread <= 0.01) return m;
-  if (spread <= 0.5)  return erlang(Math.max(1, Math.round(1 / (spread * spread))), m);
-  return exponential(m);
-}
-
-function simulate(arrIrregularity, jobVariability, avgJobTime, busyness, companyPct, nJobs) {
-  const avgGap = avgJobTime / busyness;
-  let arrivals = [], t = 0;
-  for (let i = 0; i < nJobs; i++) {
-    t += sampleSpread(avgGap, arrIrregularity);
-    arrivals.push({ arrTime: t, isCompany: Math.random() < companyPct / 100 });
-  }
-  let workerFreeAt = 0, waitTimes = [], companyWaits = [], queueOverTime = [];
-  for (let i = 0; i < arrivals.length; i++) {
-    const j     = arrivals[i];
-    const start = Math.max(j.arrTime, workerFreeAt);
-    const jobTime = sampleSpread(avgJobTime, jobVariability);
-    const wait  = start - j.arrTime;
-    workerFreeAt = start + jobTime;
-    waitTimes.push(wait);
-    if (j.isCompany) companyWaits.push(wait);
-    if (i % Math.max(1, Math.floor(nJobs / 50)) === 0) {
-      const backlog = arrivals.slice(i).filter(x => x.arrTime < workerFreeAt).length;
-      queueOverTime.push({
-        t: j.arrTime,
-        q: backlog,
-        cq: arrivals.slice(i).filter(x => x.arrTime < workerFreeAt && x.isCompany).length
-      });
-    }
-  }
-  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  return { avgWait: avg(waitTimes), companyAvgWait: avg(companyWaits), waitTimes, companyWaits, queueOverTime };
 }
 
 /* ── Charts ── */
 function makeOrUpdate(id, config) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
-  if (charts[id]) { charts[id].destroy(); }
+  if (charts[id]) charts[id].destroy();
   charts[id] = new Chart(ctx, config);
 }
 
@@ -1063,283 +1178,251 @@ const baseOpts  = {
 };
 
 /* ── Main update ── */
-function update(manualSliderChange) {
-  // If the user moves a slider manually, drop back to random simulation mode
-  if (manualSliderChange) {
-    usingRealData = false;
-    cachedSim = null;
-  }
+function update(manualChange) {
+  if (manualChange) { usingRealData = false; cachedSim = null; }
 
-  const arrIrr  = parseFloat(document.getElementById('cva').value);
-  const jobVar  = parseFloat(document.getElementById('cvs').value);
-  const avgJob  = parseFloat(document.getElementById('pt').value);
-  const busy    = parseFloat(document.getElementById('util').value) / 100;
-  const mix     = parseInt(document.getElementById('mix').value);
+  const ca = parseFloat(document.getElementById('cva').value);
+  const cs = parseFloat(document.getElementById('cvs').value);
+  const pt = parseFloat(document.getElementById('pt').value);
+  const u  = parseFloat(document.getElementById('util').value) / 100;
+  const mix = parseInt(document.getElementById('mix').value);
+  const c  = getServers();
+  const opsHrs = getOpsHrs();
 
-  document.getElementById('cva-out').textContent     = varLabel(arrIrr);
-  document.getElementById('cvs-out').textContent     = varLabel(jobVar);
-  document.getElementById('pt-out').textContent      = avgJob.toFixed(1) + ' hrs';
-  document.getElementById('u-out').textContent       = Math.round(busy * 100) + '%';
+  document.getElementById('cva-out').textContent     = varLabel(ca);
+  document.getElementById('cvs-out').textContent     = varLabel(cs);
+  document.getElementById('pt-out').textContent      = pt.toFixed(1) + ' hrs';
+  document.getElementById('u-out').textContent       = Math.round(u * 100) + '%';
   document.getElementById('mix-out').textContent     = mix + '%';
   document.getElementById('company-lbl').textContent = mix + '% The Company';
   document.getElementById('other-lbl').textContent   = (100 - mix) + '% other';
+  document.getElementById('size-detail').textContent = getTier().desc;
 
-  const formulaWait = waitTimeFn(arrIrr, jobVar, avgJob, busy);
+  const formulaWait = waitTimeFn(ca, cs, pt, u, c);
+  const spare  = spareCapacity(u, c, opsHrs, pt, 0.85);
+  const rating = capRating(u);
 
-  // Use cached real-data simulation if available, otherwise generate random jobs
-  const sim = (usingRealData && cachedSim) ? cachedSim : simulate(arrIrr, jobVar, avgJob, busy, mix, 800);
-
-  // Cache the random sim result too so tab switching doesn't re-randomise
+  const sim = (usingRealData && cachedSim) ? cachedSim : simulate(ca, cs, pt, u, mix, 800, c);
   if (!usingRealData) cachedSim = sim;
 
-  const dataSource = (usingRealData && cachedSim) ? 'from your data' : 'all job types';
-  const companySource = (usingRealData && cachedSim) ? 'from your data' : mix + '% of all arrivals';
+  const spareSub = spare.hrs > 0
+    ? `${spare.hrs.toFixed(0)} hrs/wk · ≈${spare.jobs.toFixed(0)} jobs`
+    : 'at or above 85% — no headroom';
 
   document.getElementById('metrics-row').innerHTML = `
     <div class="metric">
       <div class="metric-label">Formula estimate</div>
       <div class="metric-val">${formulaWait.toFixed(1)}h</div>
-      <div class="metric-sub">predicted wait time</div>
+      <div class="metric-sub">predicted wait · ${getTier().label}</div>
     </div>
     <div class="metric">
       <div class="metric-label">Simulated wait</div>
       <div class="metric-val">${sim.avgWait.toFixed(1)}h</div>
-      <div class="metric-sub">${dataSource}</div>
+      <div class="metric-sub">${usingRealData ? 'from your data' : 'all job types'}</div>
     </div>
     <div class="metric">
       <div class="metric-label">The Company wait</div>
       <div class="metric-val">${sim.companyAvgWait.toFixed(1)}h</div>
-      <div class="metric-sub">${companySource}</div>
+      <div class="metric-sub">${mix}% of arrivals</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Spare capacity</div>
+      <div class="metric-val"><span class="cap-badge ${rating.cls}">${rating.label}</span></div>
+      <div class="metric-sub">${spareSub}</div>
     </div>
   `;
 
+  // Insight
   const pctErr = formulaWait > 0 ? Math.abs(formulaWait - sim.avgWait) / formulaWait * 100 : 0;
-  const busyMsg = busy >= 0.9
-    ? 'Warning: this supplier is critically overloaded. Even a small increase in orders will cause wait times to spiral.'
-    : busy >= 0.75
-    ? 'Caution: above 75% busy, wait times grow rapidly. A modest reduction in workload would have a large impact.'
-    : 'This supplier has breathing room. Unpredictability is the bigger driver of delays at this workload level.';
+  const busyMsg = u >= 0.9
+    ? 'This supplier is critically overloaded — even a small increase in orders will spiral.'
+    : u >= 0.75
+    ? 'Above 75% utilization, wait times grow rapidly.'
+    : 'This supplier has breathing room — unpredictability matters more than busyness here.';
+
+  const sizeMsg = c === 1
+    ? `Modeled as a single-machine shop (${getTier().label}).`
+    : `${getTier().label} supplier (${c} parallel machines) — jobs absorb into whichever frees first.`;
+
+  const spareMsg = spare.hrs > 0
+    ? `Could absorb ~${spare.hrs.toFixed(0)} more hrs/wk (≈${spare.jobs.toFixed(0)} jobs) before hitting 85%.`
+    : 'No spare capacity at current utilization.';
+
   document.getElementById('insight-box').textContent =
-    `${busyMsg} The formula estimate is ${pctErr.toFixed(0)}% away from the simulated result. ` +
-    `The Company waits ${sim.companyAvgWait > sim.avgWait ? 'slightly longer than' : 'about the same as'} other jobs — no priority given in a shared queue.`;
+    `${busyMsg} ${sizeMsg} ${spareMsg} Formula is ${pctErr.toFixed(0)}% from simulation.`;
+
+  // ── Charts ──
+  const sizeColors = { small: '#993c1d', medium: '#ba7517', large: '#0f6e56' };
 
   if (currentView === 'dashboard') {
-    const busyLevels = [10,20,30,40,50,60,70,80,85,90,92,95,97,99];
-    const fCurve = busyLevels.map(b => +waitTimeFn(arrIrr, jobVar, avgJob, b/100).toFixed(2));
-    const sCurve = busyLevels.map(b => +simulate(arrIrr, jobVar, avgJob, b/100, mix, 400).avgWait.toFixed(2));
+    const bLevels = [10,20,30,40,50,60,70,80,85,90,92,95,97,99];
 
+    // Wait vs utilization
     makeOrUpdate('c-util', {
       type: 'line',
       data: {
-        labels: busyLevels.map(l => l + '%'),
+        labels: bLevels.map(l => l + '%'),
         datasets: [
-          { label: 'Formula estimate', data: fCurve, borderColor: '#185fa5', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2 },
-          { label: 'Simulated result', data: sCurve, borderColor: '#0f6e56', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2, borderDash: [5,3] }
+          { label: 'Formula', data: bLevels.map(b => +waitTimeFn(ca, cs, pt, b/100, c).toFixed(2)), borderColor: '#185fa5', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2 },
+          { label: 'Simulated', data: bLevels.map(b => +simulate(ca, cs, pt, b/100, mix, 400, c).avgWait.toFixed(2)), borderColor: '#0f6e56', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2, borderDash: [5,3] }
         ]
       },
       options: { ...baseOpts }
     });
 
-    const irrRange = [0.1,0.3,0.5,0.7,1.0,1.2,1.5,1.8,2.0,2.5];
-    makeOrUpdate('c-var', {
+    // All three sizes
+    makeOrUpdate('c-sizes', {
       type: 'line',
       data: {
-        labels: irrRange.map(v => varLabel(v)),
+        labels: bLevels.map(l => l + '%'),
+        datasets: Object.entries(TIERS).map(([k, t]) => ({
+          label: t.label,
+          data: bLevels.map(b => +waitTimeFn(ca, cs, pt, b/100, t.machines).toFixed(2)),
+          borderColor: sizeColors[k], backgroundColor: 'transparent',
+          pointRadius: 2, tension: 0.35, borderWidth: 2,
+          borderDash: k === currentTier ? [] : [5,3]
+        }))
+      },
+      options: {
+        ...baseOpts,
+        plugins: { legend: { display: true, position: 'top', labels: { color: axisColor, font: tickFont, boxWidth: 12, usePointStyle: true, padding: 14 } }, tooltip: { mode: 'index', intersect: false } }
+      }
+    });
+
+    // Spare capacity bars
+    const tierKeys = ['small','medium','large'];
+    makeOrUpdate('c-spare', {
+      type: 'bar',
+      data: {
+        labels: tierKeys.map(k => TIERS[k].label),
         datasets: [
-          { label: 'Arrival irregularity', data: irrRange.map(v => +waitTimeFn(v, jobVar, avgJob, busy).toFixed(2)), borderColor: '#185fa5', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2 },
-          { label: 'Job time variability', data: irrRange.map(v => +waitTimeFn(arrIrr, v, avgJob, busy).toFixed(2)), borderColor: '#993c1d', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2, borderDash: [5,3] }
+          { label: 'Spare hrs/wk', data: tierKeys.map(k => { const t = TIERS[k]; return +spareCapacity(u, t.machines, t.opsHrs, pt, 0.85).hrs.toFixed(1); }), backgroundColor: ['rgba(153,60,29,0.45)','rgba(186,117,23,0.45)','rgba(15,110,86,0.45)'], borderColor: ['#993c1d','#ba7517','#0f6e56'], borderWidth: 1, yAxisID: 'y' },
+          { label: 'Jobs/wk', data: tierKeys.map(k => { const t = TIERS[k]; return +spareCapacity(u, t.machines, t.opsHrs, pt, 0.85).jobs.toFixed(1); }), type: 'line', borderColor: '#ba7517', backgroundColor: 'transparent', pointRadius: 5, borderWidth: 2, tension: 0, yAxisID: 'y1' }
         ]
       },
       options: {
         ...baseOpts,
         scales: {
-          x: { ...baseOpts.scales.x, ticks: { ...baseOpts.scales.x.ticks, maxRotation: 30 } },
-          y: baseOpts.scales.y
+          x: { ...baseOpts.scales.x },
+          y:  { position: 'left', grid: { color: gridColor }, ticks: { color: axisColor, font: tickFont }, title: { display: true, text: 'Spare hrs/week', color: axisColor, font: tickFont } },
+          y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#ba7517', font: tickFont }, title: { display: true, text: 'Jobs/week', color: '#ba7517', font: tickFont } }
         }
       }
     });
 
-    const compBusy   = [40,50,60,70,75,80,85,90,95];
-    const fComp      = compBusy.map(b => +waitTimeFn(arrIrr, jobVar, avgJob, b/100).toFixed(2));
-    const sComp      = compBusy.map(b => +simulate(arrIrr, jobVar, avgJob, b/100, mix, 400).avgWait.toFixed(2));
-    const coComp     = compBusy.map(b => +simulate(arrIrr, jobVar, avgJob, b/100, mix, 400).companyAvgWait.toFixed(2));
-
-    makeOrUpdate('c-comp', {
-      type: 'line',
-      data: {
-        labels: compBusy.map(l => l + '%'),
-        datasets: [
-          { label: 'Formula estimate', data: fComp,  borderColor: '#185fa5', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2 },
-          { label: 'Simulation',       data: sComp,  borderColor: '#0f6e56', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2, borderDash: [5,3] },
-          { label: 'The Company',      data: coComp, borderColor: '#ba7517', backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2, borderDash: [2,2] }
-        ]
-      },
-      options: { ...baseOpts }
-    });
-
+    // Queue depth
     const qt = sim.queueOverTime;
     makeOrUpdate('c-queue', {
       type: 'line',
       data: {
         labels: qt.map((d, i) => i % 5 === 0 ? Math.round(d.t) + 'h' : ''),
         datasets: [
-          { label: 'All jobs',    data: qt.map(d => d.q),  borderColor: '#185fa5', backgroundColor: 'rgba(24,95,165,0.07)', fill: true, pointRadius: 0, tension: 0.3, borderWidth: 1.5 },
-          { label: 'The Company', data: qt.map(d => d.cq), borderColor: '#ba7517', backgroundColor: 'transparent',           pointRadius: 0, tension: 0.3, borderWidth: 1.5, borderDash: [4,3] }
+          { label: 'All', data: qt.map(d => d.q), borderColor: '#185fa5', backgroundColor: 'rgba(24,95,165,0.07)', fill: true, pointRadius: 0, tension: 0.3, borderWidth: 1.5 },
+          { label: 'Company', data: qt.map(d => d.cq), borderColor: '#ba7517', backgroundColor: 'transparent', pointRadius: 0, tension: 0.3, borderWidth: 1.5, borderDash: [4,3] }
         ]
       },
       options: { ...baseOpts }
     });
 
   } else if (currentView === 'sensitivity') {
-    const busyLevels = [10,20,30,40,50,60,70,75,80,85,90,92,95];
-    const irrLevels  = [0.5, 1.0, 1.5, 2.0, 2.5];
-    const irrColors  = ['#b5d4f4','#378add','#185fa5','#d85a30','#993c1d'];
+    const bLevels = [10,20,30,40,50,60,70,75,80,85,90,92,95];
+    const irrLevels = [0.5, 1.0, 1.5, 2.0, 2.5];
+    const irrColors = ['#b5d4f4','#378add','#185fa5','#d85a30','#993c1d'];
+
     makeOrUpdate('c-sens', {
       type: 'line',
       data: {
-        labels: busyLevels.map(l => l + '%'),
+        labels: bLevels.map(l => l + '%'),
         datasets: irrLevels.map((v, i) => ({
-          label: varLabel(v),
-          data: busyLevels.map(b => +waitTimeFn(v, jobVar, avgJob, b/100).toFixed(2)),
-          borderColor: irrColors[i], backgroundColor: 'transparent',
-          pointRadius: 2, tension: 0.35, borderWidth: 2
+          label: varLabel(v), data: bLevels.map(b => +waitTimeFn(v, cs, pt, b/100, c).toFixed(2)),
+          borderColor: irrColors[i], backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2
         }))
       },
-      options: {
-        ...baseOpts,
-        plugins: {
-          legend: { display: true, position: 'top', labels: { color: axisColor, font: tickFont, boxWidth: 12, usePointStyle: true, padding: 14 } },
-          tooltip: { mode: 'index', intersect: false }
-        }
-      }
+      options: { ...baseOpts, plugins: { legend: { display: true, position: 'top', labels: { color: axisColor, font: tickFont, boxWidth: 12, usePointStyle: true, padding: 14 } }, tooltip: { mode: 'index', intersect: false } } }
+    });
+
+    makeOrUpdate('c-sens-sizes', {
+      type: 'line',
+      data: {
+        labels: bLevels.map(l => l + '%'),
+        datasets: Object.entries(TIERS).map(([k, t]) => ({
+          label: `${t.label} (${t.machines} mach.)`,
+          data: bLevels.map(b => +waitTimeFn(ca, cs, pt, b/100, t.machines).toFixed(2)),
+          borderColor: sizeColors[k], backgroundColor: 'transparent', pointRadius: 2, tension: 0.35, borderWidth: 2
+        }))
+      },
+      options: { ...baseOpts, plugins: { legend: { display: true, position: 'top', labels: { color: axisColor, font: tickFont, boxWidth: 12, usePointStyle: true, padding: 14 } }, tooltip: { mode: 'index', intersect: false } } }
     });
 
   } else if (currentView === 'histogram') {
-    const allW  = sim.waitTimes;
-    const cW    = sim.companyWaits;
-    const maxW  = Math.max(...allW, 1) * 1.02;
-    const bins  = 20, binSize = maxW / bins;
-    const allCt = Array(bins).fill(0);
-    const cCt   = Array(bins).fill(0);
-    allW.forEach(w => { const b = Math.min(Math.floor(w / binSize), bins - 1); allCt[b]++; });
-    cW.forEach(w =>   { const b = Math.min(Math.floor(w / binSize), bins - 1); cCt[b]++; });
+    const allW = sim.waitTimes, cW = sim.companyWaits;
+    const maxW = Math.max(...allW, 1) * 1.02;
+    const bins = 20, binSz = maxW / bins;
+    const allCt = Array(bins).fill(0), cCt = Array(bins).fill(0);
+    allW.forEach(w => allCt[Math.min(Math.floor(w / binSz), bins - 1)]++);
+    cW.forEach(w => cCt[Math.min(Math.floor(w / binSz), bins - 1)]++);
     makeOrUpdate('c-hist', {
       type: 'bar',
       data: {
-        labels: allCt.map((_, i) => (i * binSize).toFixed(1)),
+        labels: allCt.map((_, i) => (i * binSz).toFixed(1)),
         datasets: [
-          { label: 'All jobs',    data: allCt, backgroundColor: 'rgba(24,95,165,0.45)',  borderColor: '#185fa5', borderWidth: 1 },
-          { label: 'The Company', data: cCt,   backgroundColor: 'rgba(186,117,23,0.45)', borderColor: '#ba7517', borderWidth: 1 }
+          { label: 'All', data: allCt, backgroundColor: 'rgba(24,95,165,0.45)', borderColor: '#185fa5', borderWidth: 1 },
+          { label: 'Company', data: cCt, backgroundColor: 'rgba(186,117,23,0.45)', borderColor: '#ba7517', borderWidth: 1 }
         ]
       },
-      options: {
-        ...baseOpts,
-        scales: {
-          x: { ...baseOpts.scales.x, title: { display: true, text: 'Hours waiting before work begins', color: axisColor, font: tickFont } },
-          y: { ...baseOpts.scales.y, title: { display: true, text: 'Number of jobs',                   color: axisColor, font: tickFont } }
-        }
-      }
+      options: { ...baseOpts, scales: {
+        x: { ...baseOpts.scales.x, title: { display: true, text: 'Hours waiting', color: axisColor, font: tickFont } },
+        y: { ...baseOpts.scales.y, title: { display: true, text: 'Number of jobs', color: axisColor, font: tickFont } }
+      }}
     });
   }
 }
 
 /* ── CSV upload ── */
-let csvRows = [];
-let csvHeaders = [];
-
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('csv-zone').classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) readCSV(file);
-}
-
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (file) readCSV(file);
-}
-
-function readCSV(file) {
-  const reader = new FileReader();
-  reader.onload = function(e) { processCSV(e.target.result, file.name); };
-  reader.readAsText(file);
-}
-
+let csvRows = [], csvHeaders = [];
+function handleDrop(e) { e.preventDefault(); document.getElementById('csv-zone').classList.remove('drag-over'); if (e.dataTransfer.files[0]) readCSV(e.dataTransfer.files[0]); }
+function handleFileSelect(e) { if (e.target.files[0]) readCSV(e.target.files[0]); }
+function readCSV(file) { const r = new FileReader(); r.onload = e => processCSV(e.target.result, file.name); r.readAsText(file); }
 function processCSV(text, filename) {
-  const lines = text.trim().split(/\r?\n/).filter(l => l.trim() !== '');
-  if (lines.length < 2) { alert('The file needs at least a header row and one row of data.'); return; }
-
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { alert('Need header + data.'); return; }
   const delim = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
   csvHeaders = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
-  csvRows    = lines.slice(1)
-    .map(l => l.split(delim).map(c => c.trim().replace(/^"|"$/g, '')))
-    .filter(r => r.some(c => c !== ''));
-
-  document.getElementById('csv-filename').textContent  = filename;
+  csvRows = lines.slice(1).map(l => l.split(delim).map(c => c.trim().replace(/^"|"$/g, ''))).filter(r => r.some(c => c));
+  document.getElementById('csv-filename').textContent = filename;
   document.getElementById('csv-row-count').textContent = csvRows.length + ' rows';
   document.getElementById('csv-success').classList.add('visible');
-
-  const autoMatch = {
-    'map-arrival': ['arrival','arrive','arrived','time','timestamp','order_time','order time'],
-    'map-service': ['service','process','processing','duration','job_time','job time','work','hours'],
-    'map-label':   ['label','company','customer','type','flag','is_company','the company']
-  };
-
+  const auto = { 'map-arrival': ['arrival','time','timestamp'], 'map-service': ['service','process','duration','job_time','hours'], 'map-label': ['label','company','customer','flag'] };
   ['map-arrival','map-service','map-label'].forEach(id => {
     const sel = document.getElementById(id);
-    sel.innerHTML = id === 'map-label' ? '<option value="">— not in my file —</option>' : '';
-    csvHeaders.forEach((h, i) => {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = h;
-      sel.appendChild(opt);
-    });
-    const match = autoMatch[id].find(k => csvHeaders.some(h => h.toLowerCase().includes(k)));
-    if (match) {
-      const idx = csvHeaders.findIndex(h => h.toLowerCase().includes(match));
-      if (idx >= 0) sel.value = idx;
-    }
+    sel.innerHTML = id === 'map-label' ? '<option value="">— not in file —</option>' : '';
+    csvHeaders.forEach((h, i) => { const o = document.createElement('option'); o.value = i; o.textContent = h; sel.appendChild(o); });
+    const m = auto[id].find(k => csvHeaders.some(h => h.toLowerCase().includes(k)));
+    if (m) { const idx = csvHeaders.findIndex(h => h.toLowerCase().includes(m)); if (idx >= 0) sel.value = idx; }
     sel.onchange = updatePreviews;
   });
-
   document.getElementById('col-mapper').classList.add('visible');
   updatePreviews();
 }
-
 function updatePreviews() {
-  const show = (previewId, colIdx) => {
-    const el = document.getElementById(previewId);
-    if (colIdx === '' || colIdx === null || colIdx === undefined) { el.textContent = ''; return; }
-    const samples = csvRows.slice(0, 3).map(r => r[colIdx] || '—').join(', ');
-    el.textContent = 'First values: ' + samples;
-  };
+  const show = (pid, idx) => { const el = document.getElementById(pid); if (!idx && idx !== 0) { el.textContent = ''; return; } el.textContent = 'First: ' + csvRows.slice(0,3).map(r => r[idx]||'—').join(', '); };
   show('prev-arrival', document.getElementById('map-arrival').value);
   show('prev-service', document.getElementById('map-service').value);
-  show('prev-label',   document.getElementById('map-label').value);
+  show('prev-label', document.getElementById('map-label').value);
 }
-
 function loadFromCSV() {
-  const arrCol = document.getElementById('map-arrival').value;
-  const svcCol = document.getElementById('map-service').value;
-  const lblCol = document.getElementById('map-label').value;
-
-  if (arrCol === '') { alert('Please choose which column holds the arrival times.'); return; }
-  if (svcCol === '') { alert('Please choose which column holds the processing times.'); return; }
-
-  document.getElementById('arr-input').value   = csvRows.map(r => r[arrCol]).filter(v => v !== '').join('\n');
-  document.getElementById('svc-input').value   = csvRows.map(r => r[svcCol]).filter(v => v !== '').join('\n');
-  document.getElementById('label-input').value = lblCol !== ''
-    ? csvRows.map(r => r[lblCol]).filter(v => v !== '').join('\n')
-    : '';
-
+  const a = document.getElementById('map-arrival').value, s = document.getElementById('map-service').value, l = document.getElementById('map-label').value;
+  if (a === '') { alert('Choose arrival column.'); return; }
+  if (s === '') { alert('Choose processing column.'); return; }
+  document.getElementById('arr-input').value = csvRows.map(r => r[a]).filter(v => v).join('\n');
+  document.getElementById('svc-input').value = csvRows.map(r => r[s]).filter(v => v).join('\n');
+  document.getElementById('label-input').value = l !== '' ? csvRows.map(r => r[l]).filter(v => v).join('\n') : '';
   document.getElementById('arr-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  ['arr-input','svc-input','label-input'].forEach(id => {
-    const el = document.getElementById(id);
-    el.style.borderColor = 'var(--green)';
-    setTimeout(() => { el.style.borderColor = ''; }, 2000);
-  });
+  ['arr-input','svc-input','label-input'].forEach(id => { const el = document.getElementById(id); el.style.borderColor = 'var(--green)'; setTimeout(() => el.style.borderColor = '', 2000); });
 }
 
+// Init
+document.getElementById('size-detail').textContent = TIERS[currentTier].desc;
 update();
 </script>
 </body>
