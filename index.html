@@ -780,14 +780,6 @@ function setSize(tier, btn) {
   currentTier = tier;
   document.querySelectorAll('#main-size-selector .size-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
-  // Auto-set variability and workload sliders to tier defaults
-  const t = TIERS[tier];
-  document.getElementById('cva').value  = t.defaultCa.toFixed(1);
-  document.getElementById('cvs').value  = t.defaultCs.toFixed(1);
-  document.getElementById('pt').value   = t.defaultPt.toFixed(1);
-  document.getElementById('util').value = t.defaultU;
-
   update(true);
 }
 
