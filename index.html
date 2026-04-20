@@ -509,7 +509,7 @@
         <span class="ctrl-val" id="u-out">75%</span>
       </div>
       <input type="range" min="5" max="99" step="1" value="75" id="util" oninput="update(true)">
-      <div class="ctrl-hint">Per-machine utilization. Above 85% is a danger zone.</div>
+      <div class="ctrl-hint">Above 85% is a danger zone.</div>
     </div>
 
     <div class="ctrl-group">
@@ -567,7 +567,7 @@
           <div class="chart-desc">Additional jobs per week this supplier could absorb before reaching 85%</div>
           <div class="chart-wrap"><canvas id="c-spare"></canvas></div>
           <div class="chart-legend">
-            <span><span class="leg-dot" style="background:#0f6e56"></span>Spare jobs/week</span>
+            <span><span class="leg-dot" style="background:#0f6e56"></span>Spare jobs</span>
             <span><span class="leg-dot" style="background:rgba(15,110,86,0.15)"></span>Current utilization</span>
           </div>
         </div>
@@ -698,7 +698,7 @@
             <div class="deriv-step"><div class="step-num">2</div><div class="step-body"><div class="step-label">Measure how irregular those gaps are</div><div class="step-working" id="d-cva-working">irregularity = spread ÷ average</div></div><div class="step-result pending" id="d-cva">enter data above</div></div>
             <div class="deriv-step"><div class="step-num">3</div><div class="step-body"><div class="step-label">Measure how variable job times are</div><div class="step-working" id="d-cvs-working">variability = spread ÷ average</div></div><div class="step-result pending" id="d-cvs">enter data above</div></div>
             <div class="deriv-step"><div class="step-num">4</div><div class="step-body"><div class="step-label">Average job processing time</div><div class="step-working" id="d-pt-working">average of all job times</div></div><div class="step-result pending" id="d-pt">enter data above</div></div>
-            <div class="deriv-step"><div class="step-num">5</div><div class="step-body"><div class="step-label">Per-machine utilization, adjusted for supplier size</div><div class="step-working" id="d-u-working">busyness = avg job time ÷ (avg gap × machines)</div></div><div class="step-result pending" id="d-u">enter data above</div></div>
+            <div class="deriv-step"><div class="step-num">5</div><div class="step-body"><div class="step-label">Estimate how busy the supplier is, adjusted for size</div><div class="step-working" id="d-u-working">busyness = avg job time ÷ (avg gap × capacity)</div></div><div class="step-result pending" id="d-u">enter data above</div></div>
             <div class="deriv-step"><div class="step-num">6</div><div class="step-body"><div class="step-label">The Company's share of the workload</div><div class="step-working" id="d-mix-working">Company jobs ÷ total jobs</div></div><div class="step-result pending" id="d-mix">enter data above</div></div>
             <div class="deriv-step"><div class="step-num">7</div><div class="step-body"><div class="step-label">Predicted wait time and spare job capacity</div><div class="step-working" id="d-vut-working">Combines busyness, irregularity, variability, and size</div></div><div class="step-result pending" id="d-vut">enter data above</div></div>
           </div>
@@ -756,19 +756,19 @@ const TIERS = {
     machines: 2,   opsHrs: 45,
     defaultCa: 1.2, defaultCs: 1.0, defaultPt: 5.0, defaultU: 75,
     label: 'Small',
-    desc: '1–2 manual lines · ~90 hrs/week · <20 employees · high variability'
+    desc: 'Manual batch processing · <20 employees · high variability'
   },
   medium: {
     machines: 4,   opsHrs: 70,
     defaultCa: 0.8, defaultCs: 0.7, defaultPt: 4.0, defaultU: 75,
     label: 'Medium',
-    desc: '3–5 semi-auto lines · ~280 hrs/week · 20–99 employees'
+    desc: 'Semi-automated lines · 20–99 employees · moderate variability'
   },
   large: {
     machines: 10,  opsHrs: 100,
     defaultCa: 0.5, defaultCs: 0.4, defaultPt: 3.5, defaultU: 80,
     label: 'Large',
-    desc: '8–12 automated lines · ~1,000 hrs/week · 100+ employees'
+    desc: 'Fully automated lines · 100+ employees · low variability'
   }
 };
 
@@ -946,12 +946,12 @@ function parseData() {
   setResult('d-cvs', `${varLabel(cvs)} (${f2(cvs)})`);
   document.getElementById('d-pt-working').textContent = `Average of ${cleanSvc.length} jobs`;
   setResult('d-pt', `${f2(avgJob)} hrs per job`);
-  document.getElementById('d-u-working').textContent = c > 1 ? `${f2(avgJob)} ÷ (${f2(avgGap)} × ${c}) = ${(u * 100).toFixed(1)}%` : `${f2(avgJob)} ÷ ${f2(avgGap)} = ${(u * 100).toFixed(1)}%`;
-  setResult('d-u', `${(u * 100).toFixed(1)}% per machine (${tier.label})`);
+  document.getElementById('d-u-working').textContent = c > 1 ? `${f2(avgJob)} ÷ (${f2(avgGap)} × ${c} lines) = ${(u * 100).toFixed(1)}%` : `${f2(avgJob)} ÷ ${f2(avgGap)} = ${(u * 100).toFixed(1)}%`;
+  setResult('d-u', `${(u * 100).toFixed(1)}% utilized (${tier.label})`);
   document.getElementById('d-mix-working').textContent = !labelRaw ? 'Using the share slider' : `${parseLines(labelRaw).filter(l => l === 1).length} of ${parseLines(labelRaw).length}`;
   setResult('d-mix', `${companyPct}% The Company`);
-  const spText = sj > 0 ? `${f2(pw)} hrs wait · ${rt.label} · ≈${Math.round(sj)} spare jobs/wk` : `${f2(pw)} hrs wait · ${rt.label} · no spare capacity`;
-  document.getElementById('d-vut-working').textContent = `${tier.label} · ${c} machine${c > 1 ? 's' : ''} · ${(u * 100).toFixed(0)}% util`;
+  const spText = sj > 0 ? `${f2(pw)} hrs wait · ${rt.label} · ≈${Math.round(sj)} spare jobs` : `${f2(pw)} hrs wait · ${rt.label} · no spare capacity`;
+  document.getElementById('d-vut-working').textContent = `${tier.label} supplier · ${(u * 100).toFixed(0)}% utilized`;
   setResult('d-vut', spText);
   document.getElementById('apply-btn').disabled = false;
 
@@ -1021,7 +1021,7 @@ function update(manual) {
   const sim = (usingRealData && cachedSim) ? cachedSim : simulate(ca, cs, pt, u, mix, 800, c);
   if (!usingRealData) cachedSim = sim;
 
-  const spareSub = sj > 0 ? `≈${Math.round(sj)} additional jobs/week before 85%` : 'at or above 85% — no headroom';
+  const spareSub = sj > 0 ? `≈${Math.round(sj)} additional jobs before 85%` : 'at or above 85% — no headroom';
 
   // Update sample label
   document.getElementById('sample-label').textContent =
@@ -1051,15 +1051,14 @@ function update(manual) {
   `;
 
   // Insight
-  const pE = fw > 0 ? Math.abs(fw - sim.avgWait) / fw * 100 : 0;
   const bMsg = u >= 0.9 ? 'This supplier is critically overloaded — even a small increase in orders will spiral.'
     : u >= 0.75 ? 'Above 75% utilization, wait times grow rapidly.'
     : 'This supplier has breathing room — unpredictability matters more than busyness here.';
-  const sMsg = c === 1 ? `Modeled as a single-machine shop (${getTier().label}).`
-    : `${getTier().label} supplier (${c} parallel machines) — jobs absorb into whichever frees first.`;
+  const sMsg = c === 1 ? `Modeled as a single-line shop (${getTier().label}).`
+    : `${getTier().label} supplier — jobs absorb into whichever line frees up first.`;
   const spMsg = sj > 0 ? `Could absorb roughly ${Math.round(sj)} more jobs per week before reaching 85%.`
     : 'No spare job capacity at current utilization.';
-  document.getElementById('insight-box').textContent = `${bMsg} ${sMsg} ${spMsg} Formula is ${pE.toFixed(0)}% from simulation.`;
+  document.getElementById('insight-box').textContent = `${bMsg} ${sMsg} ${spMsg}`;
 
   // ── Charts ──
   if (currentView === 'dashboard') {
@@ -1114,7 +1113,7 @@ function update(manual) {
       data: {
         labels: bL.map(l => l + '%'),
         datasets: [{
-          label: 'Spare jobs/week',
+          label: 'Spare jobs',
           data: spareData,
           backgroundColor: bgColors,
           borderColor: borderColors,
@@ -1129,7 +1128,7 @@ function update(manual) {
         },
         scales: {
           x: { ...bO.scales.x, title: { display: true, text: 'Utilization', color: aCo, font: tF } },
-          y: { ...bO.scales.y, title: { display: true, text: 'Spare jobs/week', color: aCo, font: tF } }
+          y: { ...bO.scales.y, title: { display: true, text: 'Spare jobs', color: aCo, font: tF } }
         }
       }
     });
