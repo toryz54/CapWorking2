@@ -143,6 +143,20 @@
     margin-top: 3px;
   }
 
+  .derived-util {
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .derived-util.green  { color: var(--green); }
+  .derived-util.amber  { color: var(--amber); }
+  .derived-util.coral  { color: var(--coral); }
+
   input[type=range] {
     -webkit-appearance: none;
     width: 100%;
@@ -522,11 +536,12 @@
 
     <div class="ctrl-group">
       <div class="ctrl-label">
-        How busy is the supplier?
-        <span class="ctrl-val" id="u-out">75%</span>
+        Arrival rate
+        <span class="ctrl-val" id="arr-out">0.15 jobs/hr</span>
       </div>
-      <input type="range" min="5" max="99" step="1" value="75" id="util" oninput="update(true)">
-      <div class="ctrl-hint">Above 85% is a danger zone.</div>
+      <input type="range" min="0.05" max="2.0" step="0.05" value="0.15" id="arr-rate" oninput="update(true)">
+      <div class="ctrl-hint">How frequently new jobs arrive at this supplier.</div>
+      <div class="derived-util" id="derived-util">→ 75% utilized · Above 85% is a danger zone</div>
     </div>
 
     <div class="ctrl-group">
@@ -955,7 +970,8 @@ function applyDerivedParams() {
   document.getElementById('cva').value = cl(cva, 0.1, 2.5).toFixed(1);
   document.getElementById('cvs').value = cl(cvs, 0.1, 2.5).toFixed(1);
   document.getElementById('pt').value = cl(pt, 1, 20).toFixed(1);
-  document.getElementById('util').value = Math.round(cl(u * 100, 5, 99));
+  const derivedArrRate = (u * lines) / pt;
+  document.getElementById('arr-rate').value = cl(derivedArrRate, 0.05, 2.0).toFixed(2);
   document.getElementById('mix').value = Math.round(cl(companyPct, 5, 95) / 5) * 5;
   document.getElementById('lines').value = cl(lines, 1, 5);
   cachedSim = simulateFromRealData(realArrTimes, realSvcTimes, jobLabels, companyPct, lines);
@@ -988,18 +1004,29 @@ function update(manual) {
   const ca = parseFloat(document.getElementById('cva').value);
   const cs = parseFloat(document.getElementById('cvs').value);
   const pt = parseFloat(document.getElementById('pt').value);
-  const u  = parseFloat(document.getElementById('util').value) / 100;
+  const arrRate = parseFloat(document.getElementById('arr-rate').value);
   const mix = parseInt(document.getElementById('mix').value);
   const c = getLines(), opsHrs = getOpsHrs(c);
+
+  // Derive utilization from arrival rate, processing time, and lines
+  const u = Math.min(0.99, (arrRate * pt) / c);
 
   document.getElementById('cva-out').textContent = varLabel(ca);
   document.getElementById('cvs-out').textContent = varLabel(cs);
   document.getElementById('pt-out').textContent = pt.toFixed(1) + ' hrs';
-  document.getElementById('u-out').textContent = Math.round(u * 100) + '%';
+  document.getElementById('arr-out').textContent = arrRate.toFixed(2) + ' jobs/hr';
   document.getElementById('mix-out').textContent = mix + '%';
   document.getElementById('company-lbl').textContent = mix + '% The Company';
   document.getElementById('other-lbl').textContent = (100 - mix) + '% other';
   document.getElementById('lines-out').textContent = c;
+
+  // Update derived utilization display
+  const uPct = Math.round(u * 100);
+  const utilEl = document.getElementById('derived-util');
+  const uClass = u >= 0.85 ? 'coral' : u >= 0.70 ? 'amber' : 'green';
+  const uWarn = u >= 0.85 ? ' · Danger zone' : u >= 0.70 ? ' · Approaching capacity' : '';
+  utilEl.textContent = `→ ${uPct}% utilized${uWarn}`;
+  utilEl.className = 'derived-util ' + uClass;
 
   const fw = waitTimeFn(ca, cs, pt, u, c);
   const sj = spareJobs(u, c, opsHrs, pt);
