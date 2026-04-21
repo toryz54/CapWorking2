@@ -187,40 +187,43 @@
     .pill-other   { background: #2c2c2a; color: #b4b2a9; }
   }
 
-  .size-selector { display: flex; gap: 6px; margin-bottom: 6px; }
-
-  .size-btn {
-    flex: 1;
-    padding: 8px 6px;
-    border-radius: 8px;
-    border: 1.5px solid var(--border-strong);
-    background: var(--surface);
-    color: var(--text-2);
-    font-family: 'Georgia', serif;
-    font-size: 13px;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.15s;
+  /* Lines slider with labels */
+  .lines-labels {
+    position: relative;
+    height: 16px;
+    margin-bottom: 0;
   }
 
-  .size-btn:hover { border-color: var(--blue); }
-
-  .size-btn.active {
-    border-color: var(--blue);
-    background: #dceefb;
-    color: #0c447c;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .size-btn.active { background: #0c447c; color: #b5d4f4; }
-  }
-
-  .size-detail {
-    font-size: 11px;
+  .lines-label {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 10px;
     color: var(--text-3);
     font-style: italic;
+    letter-spacing: 0.02em;
+  }
+
+  .lines-ticks {
+    position: relative;
+    height: 8px;
+  }
+
+  .lines-tick {
+    position: absolute;
+    top: 4px;
+    width: 1px;
+    height: 4px;
+    background: var(--border-strong);
+    transform: translateX(-50%);
+  }
+
+  .lines-nums {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-3);
     margin-top: 2px;
-    min-height: 16px;
+    padding: 0 1px;
   }
 
   .right { display: flex; flex-direction: column; gap: 1rem; }
@@ -465,13 +468,27 @@
     <div class="ctrl-heading">Supplier size</div>
 
     <div class="ctrl-group">
-      <div class="ctrl-label" style="margin-bottom:8px">How large is this supplier?</div>
-      <div class="size-selector" id="main-size-selector">
-        <button class="size-btn active" onclick="setSize('small', this)">Small</button>
-        <button class="size-btn" onclick="setSize('medium', this)">Medium</button>
-        <button class="size-btn" onclick="setSize('large', this)">Large</button>
+      <div class="ctrl-label" style="margin-bottom:2px">
+        Processing lines
+        <span class="ctrl-val" id="lines-out">1</span>
       </div>
-      <div class="size-detail" id="size-detail"></div>
+      <div class="lines-labels">
+        <span class="lines-label" style="left:0%">Small</span>
+        <span class="lines-label" style="left:50%">Medium</span>
+        <span class="lines-label" style="left:100%">Large</span>
+      </div>
+      <div class="lines-ticks">
+        <span class="lines-tick" style="left:0%"></span>
+        <span class="lines-tick" style="left:25%"></span>
+        <span class="lines-tick" style="left:50%"></span>
+        <span class="lines-tick" style="left:75%"></span>
+        <span class="lines-tick" style="left:100%"></span>
+      </div>
+      <input type="range" min="1" max="5" step="1" value="1" id="lines" oninput="update(true)">
+      <div class="lines-nums">
+        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+      </div>
+      <div class="ctrl-hint">How many jobs can this supplier work on simultaneously?</div>
     </div>
 
     <hr class="ctrl-divider">
@@ -673,14 +690,14 @@
 
         <div class="data-company-row">
           <div class="data-box">
-            <div class="data-box-title">Supplier size &amp; Company labels</div>
-            <div class="data-box-desc">Pick the supplier's size, then optionally enter 1 (Company) or 0 (other) per job.</div>
+            <div class="data-box-title">Processing lines &amp; Company labels</div>
+            <div class="data-box-desc">Set the number of processing lines, then optionally enter 1 (Company) or 0 (other) per job.</div>
             <div style="margin-bottom:8px">
-              <div class="size-selector" id="data-size-selector">
-                <button class="size-btn active" onclick="setDataSize('small', this)">Small</button>
-                <button class="size-btn" onclick="setDataSize('medium', this)">Medium</button>
-                <button class="size-btn" onclick="setDataSize('large', this)">Large</button>
+              <div class="ctrl-label" style="margin-bottom:2px">
+                Lines
+                <span class="ctrl-val" id="data-lines-out">1</span>
               </div>
+              <input type="range" min="1" max="5" step="1" value="1" id="data-lines" style="margin-bottom:4px" oninput="document.getElementById('data-lines-out').textContent=this.value">
             </div>
             <textarea id="label-input" style="height:80px" placeholder="1&#10;0&#10;1&#10;1&#10;0&#10;0&#10;1&#10;0&#10;1&#10;1"></textarea>
           </div>
@@ -746,52 +763,23 @@ function newSample() {
   update();
 }
 
-/* ── Supplier size tiers (calibrated from NASF / NAICS 332813 industry data) ──
-   Small  = Job Shop 1/2: <20 employees, <$3M rev, manual hoists, batch processing
-   Medium = Job Shop 3:   20–99 employees, $3M–$15M rev, semi-automated lines
-   Large  = Job Shop 4:   100+ employees, >$15M rev, fully automated conveyors
-   Sources: NASF Economic Impact Report, Gemini industry analysis (Apr 2026) */
-const TIERS = {
-  small: {
-    machines: 2,   opsHrs: 45,
-    defaultCa: 1.2, defaultCs: 1.0, defaultPt: 5.0, defaultU: 75,
-    label: 'Small',
-    desc: 'Manual batch processing · <20 employees · high variability'
-  },
-  medium: {
-    machines: 4,   opsHrs: 70,
-    defaultCa: 0.8, defaultCs: 0.7, defaultPt: 4.0, defaultU: 75,
-    label: 'Medium',
-    desc: 'Semi-automated lines · 20–99 employees · moderate variability'
-  },
-  large: {
-    machines: 10,  opsHrs: 100,
-    defaultCa: 0.5, defaultCs: 0.4, defaultPt: 3.5, defaultU: 80,
-    label: 'Large',
-    desc: 'Fully automated lines · 100+ employees · low variability'
-  }
-};
+/* ── Supplier capacity (calibrated from NASF / NAICS 332813 industry data) ──
+   Lines 1–2 = Small:  manual hoists, batch processing, <20 employees
+   Lines 3   = Medium: semi-automated lines, 20–99 employees
+   Lines 4–5 = Large:  fully automated conveyors, 100+ employees
+   opsHrs scales with line count: more lines → multi-shift operations */
 
 const TARGET_U = 0.85;
-let currentTier = 'small';
-let dataTier = 'small';
 
-function setSize(tier, btn) {
-  currentTier = tier;
-  document.querySelectorAll('#main-size-selector .size-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  update(true);
+function getLines()    { return parseInt(document.getElementById('lines').value) || 1; }
+function getDataLines() { return parseInt(document.getElementById('data-lines').value) || 1; }
+function getOpsHrs(c)  { return 40 + ((c || getLines()) - 1) * 10; }
+
+function sizeLabel(c) {
+  if (c <= 2) return 'Small';
+  if (c <= 3) return 'Medium';
+  return 'Large';
 }
-
-function setDataSize(tier, btn) {
-  dataTier = tier;
-  document.querySelectorAll('#data-size-selector .size-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-function getTier()    { return TIERS[currentTier]; }
-function getServers() { return getTier().machines; }
-function getOpsHrs()  { return getTier().opsHrs; }
 
 /* ── Capacity helpers ── */
 function capRating(u) {
@@ -908,7 +896,7 @@ function parseData() {
   const arrTimes = parseLines(document.getElementById('arr-input').value);
   const svcTimes = parseLines(document.getElementById('svc-input').value);
   const labelRaw = document.getElementById('label-input').value.trim();
-  const tier = TIERS[dataTier], c = tier.machines;
+  const c = getDataLines();
 
   if (arrTimes.length < 2) { showErr('Please enter at least 2 arrival times.'); return; }
   if (svcTimes.length < 1) { showErr('Please enter at least 1 processing time.'); return; }
@@ -929,13 +917,13 @@ function parseData() {
   else { const lb = parseLines(labelRaw); companyPct = Math.round(lb.filter(l => l === 1).length / lb.length * 100); }
 
   const pw = waitTimeFn(cva, cvs, pt, u, c);
-  const sj = spareJobs(u, c, tier.opsHrs, pt);
+  const sj = spareJobs(u, c, getOpsHrs(c), pt);
   const rt = capRating(u);
 
   let jobLabels = [];
   if (labelRaw) jobLabels = parseLines(labelRaw).map(l => l === 1);
 
-  derivedParams = { cva, cvs, pt, u, companyPct, realArrTimes: arrTimes, realSvcTimes: cleanSvc, jobLabels, tier: dataTier };
+  derivedParams = { cva, cvs, pt, u, companyPct, realArrTimes: arrTimes, realSvcTimes: cleanSvc, jobLabels, lines: c };
 
   const f2 = n => n.toFixed(2);
   document.getElementById('d-iat-working').textContent = `${gaps.length} gaps · avg: ${f2(avgGap)} hrs`;
@@ -947,11 +935,11 @@ function parseData() {
   document.getElementById('d-pt-working').textContent = `Average of ${cleanSvc.length} jobs`;
   setResult('d-pt', `${f2(avgJob)} hrs per job`);
   document.getElementById('d-u-working').textContent = c > 1 ? `${f2(avgJob)} ÷ (${f2(avgGap)} × ${c} lines) = ${(u * 100).toFixed(1)}%` : `${f2(avgJob)} ÷ ${f2(avgGap)} = ${(u * 100).toFixed(1)}%`;
-  setResult('d-u', `${(u * 100).toFixed(1)}% utilized (${tier.label})`);
+  setResult('d-u', `${(u * 100).toFixed(1)}% utilized (${sizeLabel(c)})`);
   document.getElementById('d-mix-working').textContent = !labelRaw ? 'Using the share slider' : `${parseLines(labelRaw).filter(l => l === 1).length} of ${parseLines(labelRaw).length}`;
   setResult('d-mix', `${companyPct}% The Company`);
   const spText = sj > 0 ? `${f2(pw)} hrs wait · ${rt.label} · ≈${Math.round(sj)} spare jobs` : `${f2(pw)} hrs wait · ${rt.label} · no spare capacity`;
-  document.getElementById('d-vut-working').textContent = `${tier.label} supplier · ${(u * 100).toFixed(0)}% utilized`;
+  document.getElementById('d-vut-working').textContent = `${sizeLabel(c)} supplier · ${c} line${c > 1 ? 's' : ''} · ${(u * 100).toFixed(0)}% utilized`;
   setResult('d-vut', spText);
   document.getElementById('apply-btn').disabled = false;
 
@@ -962,16 +950,15 @@ function setResult(id, text) { const el = document.getElementById(id); el.textCo
 
 function applyDerivedParams() {
   if (!derivedParams) return;
-  const { cva, cvs, pt, u, companyPct, realArrTimes, realSvcTimes, jobLabels, tier } = derivedParams;
+  const { cva, cvs, pt, u, companyPct, realArrTimes, realSvcTimes, jobLabels, lines } = derivedParams;
   const cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   document.getElementById('cva').value = cl(cva, 0.1, 2.5).toFixed(1);
   document.getElementById('cvs').value = cl(cvs, 0.1, 2.5).toFixed(1);
   document.getElementById('pt').value = cl(pt, 1, 20).toFixed(1);
   document.getElementById('util').value = Math.round(cl(u * 100, 5, 99));
   document.getElementById('mix').value = Math.round(cl(companyPct, 5, 95) / 5) * 5;
-  currentTier = tier;
-  document.querySelectorAll('#main-size-selector .size-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === tier));
-  cachedSim = simulateFromRealData(realArrTimes, realSvcTimes, jobLabels, companyPct, TIERS[tier].machines);
+  document.getElementById('lines').value = cl(lines, 1, 5);
+  cachedSim = simulateFromRealData(realArrTimes, realSvcTimes, jobLabels, companyPct, lines);
   usingRealData = true;
   setView('dashboard', document.querySelectorAll('.tab')[0]);
 }
@@ -1003,7 +990,7 @@ function update(manual) {
   const pt = parseFloat(document.getElementById('pt').value);
   const u  = parseFloat(document.getElementById('util').value) / 100;
   const mix = parseInt(document.getElementById('mix').value);
-  const c = getServers(), opsHrs = getOpsHrs();
+  const c = getLines(), opsHrs = getOpsHrs(c);
 
   document.getElementById('cva-out').textContent = varLabel(ca);
   document.getElementById('cvs-out').textContent = varLabel(cs);
@@ -1012,7 +999,7 @@ function update(manual) {
   document.getElementById('mix-out').textContent = mix + '%';
   document.getElementById('company-lbl').textContent = mix + '% The Company';
   document.getElementById('other-lbl').textContent = (100 - mix) + '% other';
-  document.getElementById('size-detail').textContent = getTier().desc;
+  document.getElementById('lines-out').textContent = c;
 
   const fw = waitTimeFn(ca, cs, pt, u, c);
   const sj = spareJobs(u, c, opsHrs, pt);
@@ -1031,7 +1018,7 @@ function update(manual) {
     <div class="metric">
       <div class="metric-label">Formula estimate</div>
       <div class="metric-val">${fw.toFixed(1)}h</div>
-      <div class="metric-sub">predicted wait · ${getTier().label}</div>
+      <div class="metric-sub">predicted wait · ${sizeLabel(c)}</div>
     </div>
     <div class="metric">
       <div class="metric-label">Simulated wait</div>
@@ -1054,8 +1041,8 @@ function update(manual) {
   const bMsg = u >= 0.9 ? 'This supplier is critically overloaded — even a small increase in orders will spiral.'
     : u >= 0.75 ? 'Above 75% utilization, wait times grow rapidly.'
     : 'This supplier has breathing room — unpredictability matters more than busyness here.';
-  const sMsg = c === 1 ? `Modeled as a single-line shop (${getTier().label}).`
-    : `${getTier().label} supplier — jobs absorb into whichever line frees up first.`;
+  const sMsg = c === 1 ? `Modeled as a single-line shop.`
+    : `${sizeLabel(c)} supplier with ${c} lines — jobs absorb into whichever line frees up first.`;
   const spMsg = sj > 0 ? `Could absorb roughly ${Math.round(sj)} more jobs per week before reaching 85%.`
     : 'No spare job capacity at current utilization.';
   document.getElementById('insight-box').textContent = `${bMsg} ${sMsg} ${spMsg}`;
@@ -1255,7 +1242,7 @@ function loadFromCSV() {
   ['arr-input', 'svc-input', 'label-input'].forEach(id => { const el = document.getElementById(id); el.style.borderColor = 'var(--green)'; setTimeout(() => el.style.borderColor = '', 2000); });
 }
 
-document.getElementById('size-detail').textContent = TIERS[currentTier].desc;
+document.getElementById('lines-out').textContent = getLines();
 update();
 </script>
 </body>
